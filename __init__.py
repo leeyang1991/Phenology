@@ -50,7 +50,7 @@ def sleep(t=1):
     time.sleep(t)
 
 def pause():
-    wait = raw_input("PRESS ENTER TO CONTINUE.")
+    raw_input('\n\033[91m'+"PRESS ENTER TO CONTINUE."+'\033[0m\n')
 
 this_root = 'D:\\project_phenology\\'
 data_root = 'D:\\project_phenology\\data\\'

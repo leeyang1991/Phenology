@@ -316,9 +316,9 @@ class Pick_drought_events:
         #############################################################
         # ********************pick cwd events************************
         #############################################################
-        # drought_index_f = data_root + 'CWD\\per_pix_1982_2015_detrend\\CWD.npy'
-        # outdir = self.this_class_arr + 'cwd_events\\'
-        # self.pick(drought_index_f, outdir)
+        drought_index_f = data_root + 'CWD\\per_pix_1982_2015_detrend\\CWD.npy'
+        outdir = self.this_class_arr + 'cwd_events\\'
+        self.pick(drought_index_f, outdir)
         #############################################################
         # ************compose_spei_n_to_one_file*********************
         #############################################################
@@ -336,7 +336,7 @@ class Pick_drought_events:
         # ***********************compose CWD SPEI********************
         #############################################################
         # self.check_events()
-        self.compose_cwd_spei()
+        # self.compose_cwd_spei()
 
         pass
 
@@ -701,18 +701,79 @@ class Rs_Rc_Rt:
 
     def __init__(self):
 
+        self.this_class_arr = results_root + 'arr\\Rs_Rc_Rt\\'
+        self.this_class_tif = results_root + 'tif\\Rs_Rc_Rt\\'
+        self.this_class_png = results_root + 'png\\Rs_Rc_Rt\\'
+        Tools().mk_dir(self.this_class_arr, force=True)
+        Tools().mk_dir(self.this_class_tif, force=True)
+        Tools().mk_dir(self.this_class_png, force=True)
+        self.pick_class = Pick_drought_events()
         pass
 
 
     def run(self):
         # d = during the dry period
-        # pre = 3 years previous dry period
-        # post = post
-        ndvi_dir = data_root + 'NDVI\\'
+        n = 12
+        # pre = 1 years previous dry period
+        # post = 1 years post dry period
 
-        rc = NDVI_d / NDVI_pre
-        rc = NDVIG_post / NDVI_d
-        rs = NDVI_post / NDVI_pre
+        outdir = self.this_class_tif + 'spatial\\'
+        T.mk_dir(outdir)
+        # ndvi_dir = data_root + 'NDVI\\per_pix_clean_anomaly_smooth\\'
+        ndvi_dir = data_root + 'NDVI\\per_pix_clean\\'
+        ndvi_dic = {}
+        for f in os.listdir(ndvi_dir):
+            dic = T.load_npy(ndvi_dir + f)
+            ndvi_dic.update(dic)
+        event_f = self.pick_class.this_class_arr + 'compose_cwd_spei\\compose_cwd_spei.npy'
+        event_dic = T.load_npy(event_f)
+
+        rt_dic = {}
+        rc_dic = {}
+        rs_dic = {}
+        for pix in tqdm(event_dic,desc='calculating rt tc rs ...'):
+            events = event_dic[pix]
+            if not pix in ndvi_dic:
+                continue
+            ndvi = ndvi_dic[pix]
+            for event in events:
+                drought_duration = []
+                for i in event:
+                    drought_duration.append(i)
+                drought_pre = []
+                for i in range(event[0] - n,event[0]):
+                    drought_pre.append(i)
+                drought_post = []
+                for i in range(event[-1],event[-1] + n):
+                    drought_post.append(i)
+                NDVI_d = T.pick_vals_from_1darray(ndvi,drought_duration)
+                NDVI_pre = T.pick_vals_from_1darray(ndvi,drought_pre)
+                NDVI_post = T.pick_vals_from_1darray(ndvi,drought_post)
+
+                NDVI_d = np.nanmean(NDVI_d)
+                NDVI_pre = np.nanmean(NDVI_pre)
+                NDVI_post = np.nanmean(NDVI_post)
+
+                rt = NDVI_d / NDVI_pre
+                rc = NDVI_post / NDVI_d
+                rs = NDVI_post / NDVI_pre
+
+                # rt = np.log(rt)
+                # rc = np.log(rc)
+                # rs = np.log(rs)
+
+
+                rt_dic[pix] = rt
+                rc_dic[pix] = rc
+                rs_dic[pix] = rs
+
+        DIC_and_TIF().pix_dic_to_tif(rt_dic,outdir + 'rt.tif')
+        DIC_and_TIF().pix_dic_to_tif(rc_dic,outdir + 'rc.tif')
+        DIC_and_TIF().pix_dic_to_tif(rs_dic,outdir + 'rs.tif')
+
+
+
+
         pass
 
 
